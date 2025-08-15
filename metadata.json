@@ -1,0 +1,5 @@
+{
+  "name": "Chronos - An Interactive History of the World",
+  "description": "Explore world history through an interactive timeline and ask questions to an AI historian powered by the Gemini API.",
+  "requestFramePermissions": []
+}
