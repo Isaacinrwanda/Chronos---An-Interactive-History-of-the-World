@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI, Chat } from "@google/genai";
 import { ChatMessage, Language, HistoricalEra } from '../types';
 import { UI_TEXT } from '../constants';
@@ -18,7 +19,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ language, onBack, selectedEra }
   const chatEndRef = useRef<HTMLDivElement>(null);
   const isInitialPromptSent = useRef(false);
 
-  const sendMessage = async (message: string) => {
+  const sendMessage = useCallback(async (message: string) => {
     if (!message.trim() || !chat) return;
 
     setChatHistory(prev => [...prev, { role: 'user', content: message }]);
@@ -34,9 +35,17 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ language, onBack, selectedEra }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [chat]);
 
   useEffect(() => {
+    if (!process.env.API_KEY) {
+      setChatHistory([{
+        role: 'model',
+        content: 'Error: This application has not been configured correctly. Please contact the administrator to set up the API key.'
+      }]);
+      return;
+    }
+
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const newChat = ai.chats.create({
       model: 'gemini-2.5-flash',
@@ -57,7 +66,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ language, onBack, selectedEra }
         const prompt = `Tell me more about the "${selectedEra.title[language]}" era.`;
         sendMessage(prompt);
     }
-  }, [chat, selectedEra, language]);
+  }, [chat, selectedEra, language, sendMessage]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -118,9 +127,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ language, onBack, selectedEra }
             onChange={(e) => setUserInput(e.target.value)}
             placeholder={UI_TEXT.chatPlaceholder[language]}
             className="w-full p-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            disabled={isLoading}
+            disabled={isLoading || !chat}
           />
-          <button type="submit" disabled={isLoading || !userInput.trim()} className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors">
+          <button type="submit" disabled={isLoading || !userInput.trim() || !chat} className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors">
             <PaperAirplaneIcon className="w-6 h-6" />
           </button>
         </form>
